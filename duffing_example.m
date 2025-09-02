@@ -20,7 +20,8 @@ n_states  = sys_info.state_dim;
 n_ctrl    = sys_info.ctrl_dim;
 x         = sym('x',[n_states;1],'real');
 u         = sym('u',[n_ctrl;1],'real');   
-dx_dxt    = dynamics(x, u, sys_info);    
+dx_dxt    = dynamics(x, u, sys_info);   
+
 A = sys_info.A;
 B = sys_info.B;
 W = sys_info.eig_vectors;
@@ -34,7 +35,7 @@ else
     disp('---- Eqb point is saddle ----')
 end
 
-%% ================== (Grid sweep: follow your setup exactly ==================
+%% ================== Grid sweep: Find Eigenfunctions  ==================
 dim = 1; % dimension for integraton (1 for scalar)
 Dom = [2,2];
 bounds = Dom(2);
@@ -56,7 +57,7 @@ for i = 1:length(x_0)
     % grid IC at index i
     x      = x_0(i,:);                        % 1x2
     phi    = compute_path_integrals(x', dynamics, sys_info);
-    phi_x  = phi.phi_x_op(:);               % column vector [φ1; φ2; ...]
+    phi_x  = phi.phi_x_op(:);                 % column vector [φ1; φ2;]
 
     % log
     phi1 = [phi1, phi_x(1)];
@@ -68,8 +69,8 @@ delete(F);
 
 %% reshape
 % phi for saddle at (0,0)
-phi1 = reshape((phi1),size(q2)); %phi1_saddle(phi1_saddle>10)=10;
-phi2 = reshape((phi2),size(q2)); %phi2_saddle(phi2_saddle>10)=10;
+phi1 = reshape((phi1),size(q2));
+phi2 = reshape((phi2),size(q2)); 
 
 %% plots
 % ---------- Vector field for streamslice overlay (u = 0) ----------
