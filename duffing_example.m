@@ -9,6 +9,7 @@ set(0,'defaultfigurecolor',[1 1 1])
 % --- add paths ---
 addpath('dynamics')
 addpath('compute_eigfuns')
+addpath('sampling')
 
 % --- params ---
 show_diagnositcs = false;
