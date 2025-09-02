@@ -118,7 +118,7 @@ for j = 1: length(x0_u)
     Q          = Phi*pinv(Psi_grid);                    % 1 × #basis
     Phi_approx = Q*Psi;                                 % symbolic φ̂(x)
 
-    %% -------- Shift eqb point back, build 2D slice function ---------------
+    %% -------- Shift eqb point, build 2D slice function ---------------
     figure(1)
     Phi_approx_shift = subs(Phi_approx, [x(1); x(2); x(3); x(4)], ...
                                         [x(1)-x_star(1); ...
@@ -143,7 +143,7 @@ for j = 1: length(x0_u)
 
 end % for j eqb points
 
-%% ---------------------------- Figure  --------------------------
+%% ---------------------------- plot the stable manifolds  --------------------------
 figure(1)
 xlabel('$x_1$', 'FontSize', 16, 'Interpreter', 'latex');
 ylabel('$x_2$', 'FontSize', 16, 'Interpreter', 'latex');
