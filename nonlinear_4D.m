@@ -7,46 +7,47 @@
 % - Plot implicit curve on the slice (x2=0, x4=0)
 %
 % Dependencies:
-%   - monomial_basis_sin.m   (returns symbolic basis Ψ(x))
+%   - monomial_basis_sine.m   (returns symbolic basis Ψ(x))
 %
 % This script defines its own helper: offFrame()
 %% ========================================================================
 clc; clear all; close all;
-% ------------------------ ODE options (forward) -------------------------
-options = odeset('RelTol',1e-8,'AbsTol',1e-10);
+
+% --- add paths ---
+addpath('sampling')
 
 %% --------------------------- Vector field f(x) --------------------------
 % x = [x1; x2; x3; x4] := [theta1; dtheta1; theta2; dtheta2]
-syms('x',[ 4;1])
+n = 4; % 4 states
+syms('x',[n;1]);
 
-% The damping term sign differs from a book reference (comment preserved).
+% The damping term sign differs from a book reference.
 f = @(x)[ ...
     x(2); ...
    -sin(x(1)) - 0.5*sin(x(1)-x(3)) - 0.4*x(2); ...
     x(4); ...
    -0.5*sin(x(3)) - 0.5*sin(x(3)-x(1)) - 0.5*x(4) + 0.05 ...
-]; 
-
-% ------------------------ Symbolic state for Jacobian -------------------
-x = sym('x',[4;1]);
+    ]; 
 
 % ----------------- Equilibrium candidates (angles, zero rates) ----------
 x0_u = [
-    3.24512 0 0.31170  0;
-    3.04037 0 3.24387 0;
-    0.03333 0 3.10823 0;
-   -3.03807 0 0.3117  0;
-   -3.24282 0 -3.03931 0;
-    0.03333 0 -3.17496 0];
+    3.24512 0  0.31170  0; % eqb 1
+    3.04037 0  3.24387  0; % eqb 2
+    0.03333 0  3.10823  0; % eqb 3
+   -3.03807 0  0.3117   0; % eqb 4
+   -3.24282 0 -3.03931  0; % eqb 5
+    0.03333 0 -3.17496  0; % eqb 6
+    ];
 
 % --------------------- Plot window presets (per eq) ---------------------
 line_len = [ ...
-    2.65902 3.78331 -2.35923 2.299;
-    2.80148 3.78331  2.25285 3.75057;
-   -2.60231 2.80148  2.37122 3.75057;
-   -3.83868 -2.60231 -2.31752 2.372;
-   -3.83868 -2.7942   -3.7996 -2.31752;
-   -2.7942  2.65902  -3.7996 -2.35923];
+    2.65902  3.78331 -2.35923 2.29900;
+    2.80148  3.78331  2.25285 3.75057;
+   -2.60231  2.80148  2.37122 3.75057;
+   -3.83868 -2.60231 -2.31752 2.37200;
+   -3.83868 -2.79420 -3.79960 -2.31752;
+   -2.7942   2.65902 -3.79960 -2.35923
+   ];
 
 % ---------------------- Storage for curve points ------------------------
 x_cell = {};
@@ -59,7 +60,6 @@ for j = 1: length(x0_u)
     x_star = x0_u(j,:);
 
     % -------- Linearization: A = df/dx |_{x = x_star} (symbolic) -------
-    % Uses eval(subs(...)) exactly as in your code.
     A = eval(subs(jacobian(f(x)), [x(1); x(2); x(3); x(4)], x_star'));
 
     % ------------------- Eigen-decomposition of A -----------------------
@@ -70,84 +70,26 @@ for j = 1: length(x0_u)
     % ------------- Nonlinear remainder f_n(x) = f(x) - A x -------------
     fn = f(x) - A*[x(1); x(2); x(3); x(4)];
 
-    % --------- Linear eigenfunction seed (left eigenvector · x) --------
-    % (No semicolon per your code: prints Phi_lin_un to console.)
-    Phi_lin_un =  W(:,1)'*x
-
     % -------------------- Select unstable eigen value ----------------------
-    % note there is only one unstbale eig val in each eqb point
-    eig_val1 = real(D(1)); w1 = W(:,1);
+    % note there is only one unstable eig val in each eqb point
+    eig_val_unstable = real(D(1)); w_unstable = W(:,1);
 
-    % ---- Koopman forcing terms g_i(x) = w_i^T f_n(x) (function handles)
-    g1 = matlabFunction(w1'*fn,'vars',{x(1),x(2),x(3),x(4)});
-
-    % -------- Critical clearing time Linear eigenfunction ------
-    %{
-    % figure(1)
-    % Phi_un = Phi_shift;
-    % Phi_un_fun = matlabFunction(Phi_un);
-    % St2 = Phi_un_fun(x1,0,x2,0);
-    % p1 =   fimplicit(St2,'g','LineWidth',3);hold on;
-    % sz = 100;
-    % scatter(x_star(1),x_star(3),sz,'filled'); hold on;
-    %}
-
-    %% ---------------- Random 4D box around equilibrium -----------------
-    % Generate num_points samples in a small hyper-rectangle around x_star
-    num_points = 500;
-
-    % Bounds per coordinate (centered at x_star(1), 0, x_star(3), 0)
-    x_min = x_star(1) - 0.1; x_max = x_star(1) + 0.1;
-    y_min = 0 - 0.1;         y_max = 0 + 0.1;
-    z_min = x_star(3) - 0.1; z_max = x_star(3) + 0.1;
-    w_min = -0.1;            w_max =  0.1;
-
-    % Draw uniform random samples in the 4D rectangle
-    x_coords = x_min + (x_max - x_min) * rand(num_points, 1);
-    y_coords = y_min + (y_max - y_min) * rand(num_points, 1);
-    z_coords = z_min + (z_max - z_min) * rand(num_points, 1);
-    w_coords = w_min + (w_max - w_min) * rand(num_points, 1);
-
-    % Combine into matrix: rows = points, cols = [x1 x2 x3 x4]
-    data_points = [x_coords, y_coords, z_coords, w_coords];
-
-    %% ---------------- Backward-time simulation settings -----------------
-    Dom = [-5 5];  % plotting/selection domain in each coordinate
-
-    % Stricter tolerances for backward/forward integrations with event stop
-    options = odeset('RelTol',1e-9,'AbsTol',1e-300, ...
-                     'events',@(t, x) offFrame(t, x, Dom(2)));
-    tspan = 0:0.01:5;
-
-    % ---------------- Integrate backward from all samples ---------------
-    figure(1);
-    hold on;
-    x_all = [];
-    t_all = [];
-    for i = 1: length(data_points)
-        % Integrate dx/dt = -f(x) backward over tspan
-        [t,x] = ode45(@(t,x)(-f(x)), tspan, data_points(i,:), options);
-        % Accumulate states and times across all trajectories
-        x_all = [x_all ; x];
-        t_all = [t_all; t];
-    end
-
-    % --------- Keep only states within hyper-rectangle |xi|<5 ----------
-    selected_indices = abs(x_all(:, 1)) < 5 & abs(x_all(:, 2)) < 5 ...
-                    &  abs(x_all(:, 3)) < 5 & abs(x_all(:, 4)) < 5; % absolute value in the path integral domain
-    selected_data_points = x_all(selected_indices, :);
-
-    dim = 1; % dimension for integraton (1 for scalar, used in trapz)
-    x_0n =  selected_data_points;      % seeds for forward path integrals
-    t_0n = t_all(selected_indices);    % corresponding times (from backward run)
+    % ---- nonlinear forcing terms g_i(x) = w_i^T f_n(x) (function handles)
+    g_unstable = matlabFunction(w_unstable'*fn,'vars',{x(1),x(2),x(3),x(4)});
 
     %% ----------------------- Path integral (φ) --------------------------
+    % sample close to linear eigvector of eqb point
+    Dom = [-5 5]; dim = 1;
+    [x_0n, t_0n] = backward_sample_box(x_star, f, ...
+                    'NumPoints', 500, 'HalfSize', 0.1, 'Dom', Dom, ...
+                    'Dt', 0.01, 'Tmax', 5, 'RelTol', 1e-6, 'AbsTol', 1e-9);
+
     % Compute φ along forward trajectories from each seed in x_0n.
     phi_unstable=[];
-    options = odeset('RelTol',1e-9,'AbsTol',1e-300, ...
+    options = odeset('RelTol',1e-6,'AbsTol',1e-9, ...
                      'events',@(t, x) offFrame(t, x, Dom(2)));
 
-    parfor k = 1:length(x_0n)
+    for k = 1:length(x_0n)
         % Short forward horizon chosen from backward time (exactly as given)
         if t_0n(k)==0
             tspan = [0 0.1];
@@ -159,26 +101,30 @@ for j = 1: length(x0_u)
         [t,x] = ode45(@(t,x)f(x), tspan, x_0n(k,:), options);
 
         % φ ≈ w1'*x0 + ∫ e^{-λ1 t} g1(x(t)) dt  (trapz along time)
-        phi_unstable = [phi_unstable, w1'*x_0n(k,:)' + trapz(t, exp(-eig_val1*t) .* ...
-                    g1(x(:,1), x(:,2), x(:,3), x(:,4)), dim)]; % unstable eigenfunctions at saddle point (0,0)
+        phi_nonlinear = trapz(t, exp(-eig_val_unstable*t) .* ...
+                        g_unstable(x(:,1), x(:,2), x(:,3), x(:,4)), dim);
+        phi_linear    = w_unstable'*x_0n(k,:)';
+        phi_total     = phi_linear + phi_nonlinear;
+        phi_unstable = [phi_unstable,   phi_total];
     end
 
     %% ---------------- Least squares fit φ ≈ Q Ψ(x) ----------------------
-    n = 4;
-    x = sym('x',[n;1]);          % re-declare x as in your code
-    Phi = phi_unstable;                 % data row (1 × N)
+    Phi = phi_unstable;          % data row (1 × N)
     deg = 1;                     % order of basis for monomials/sin
+    syms('x',[n;1]);
+    [Psi, ~]   = monomial_basis_sin(deg, n);            % symbolic basis
+    Psi_fun    = matlabFunction(Psi,'Vars',{x});        % function handle
+    Psi_grid   = Psi_fun(x_0n');                        % (#basis × N)
+    Q          = Phi*pinv(Psi_grid);                    % 1 × #basis
+    Phi_approx = Q*Psi;                                 % symbolic φ̂(x)
 
-    [Psi, ~]  = monomial_basis_sin(deg, n);            % symbolic basis
-    Psi_fun   = matlabFunction(Psi,'Vars',{x});        % function handle
-    Psi_grid  = Psi_fun(x_0n');                        % (#basis × N)
-    Q         = Phi*pinv(Psi_grid);                    % 1 × #basis
-    Phi_approx= Q*Psi;                                 % symbolic φ̂(x)
-
-    %% -------- Shift φ in angles, build 2D slice function ---------------
+    %% -------- Shift eqb point back, build 2D slice function ---------------
     figure(1)
     Phi_approx_shift = subs(Phi_approx, [x(1); x(2); x(3); x(4)], ...
-                                         [x(1)-x_star(1); x(2); x(3)-x_star(3); x(4)]);
+                                        [x(1)-x_star(1); ...
+                                         x(2)-x_star(2);...
+                                         x(3)-x_star(3);...
+                                         x(4)-x_star(4)]);
     Phi_aprx_fun = matlabFunction(Phi_approx_shift);
 
     % Evaluate on slice x2=0, x4=0, implicit curve in (x1,x3)-plane
@@ -195,7 +141,7 @@ for j = 1: length(x0_u)
     x_cell{j} = xdata;
     y_cell{j} = ydata;
 
-end % for j
+end % for j eqb points
 
 %% ---------------------------- Figure  --------------------------
 figure(1)
