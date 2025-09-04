@@ -66,7 +66,6 @@ for j = 1: length(x0_u)
 
     % ------------------- Eigen-decomposition of A -----------------------
     % V: right eigenvectors, D: diag eigenvalues, W: left eigenvectors
-    % Assuming A is Hurwitz
     [V,D,W] = eig(A);
     D = diag(D);
 
@@ -82,8 +81,7 @@ for j = 1: length(x0_u)
 
     %% ----------------------- Path integral (φ) --------------------------
     % sample close to linear eigvector of eqb point
-    Dom = [-5 5]; 
-    dim = 1; % scalar for trapz integration
+    Dom = [-5 5]; dim = 1;
     [x_0n, t_0n] = backward_sample_box(x_star, f, ...
                     'NumPoints', 500, 'HalfSize', 0.1, 'Dom', Dom, ...
                     'Dt', 0.01, 'Tmax', 5, 'RelTol', 1e-6, 'AbsTol', 1e-9);
@@ -98,7 +96,7 @@ for j = 1: length(x0_u)
         if t_0n(k)==0
             tspan = [0 0.1];
         else
-            tspan = [0 t_0n(k)/64]; % huristic setup for integration time
+            tspan = [0 t_0n(k)/64];
         end
 
         % Forward integrate dx/dt = f(x)
