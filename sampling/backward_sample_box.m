@@ -24,12 +24,12 @@ function [x_sample, t_sample] = backward_sample_box(x_star, f, varargin)
 
 % ---------- parse inputs ----------
 p = inputParser;
-p.addParameter('NumPoints', 500,    @(z) isnumeric(z) && isscalar(z) && z>0);
+p.addParameter('NumPoints', 200,    @(z) isnumeric(z) && isscalar(z) && z>0); %%%%%%%%%%
 p.addParameter('HalfSize',  0.1,    @(z) isnumeric(z) && (isscalar(z) || numel(z)==4));
 p.addParameter('Dom',       [-5 5], @(z) isnumeric(z) && numel(z)==2);
 p.addParameter('Dt',        0.01,   @(z) isnumeric(z) && isscalar(z) && z>0);
 p.addParameter('Tmax',      5,      @(z) isnumeric(z) && isscalar(z) && z>0);
-p.addParameter('RelTol',    1e-6,   @(z) isnumeric(z) && isscalar(z));
+p.addParameter('RelTol',    1e-10,   @(z) isnumeric(z) && isscalar(z)); %%%%%%%%%%%%%
 p.addParameter('AbsTol',    1e-9, @(z) isnumeric(z) && isscalar(z));
 p.parse(varargin{:});
 
