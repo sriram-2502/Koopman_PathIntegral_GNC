@@ -144,7 +144,7 @@ for iEq = 1:5
             % Forward integration (for unstable eigenvalues)
             [tf, Xf] = ode45(@(t,xx) f_vec(xx), [0, t_int], X0, optsEv);
             % Backward integration (for stable eigenvalues): integrate backward flow
-            [tb, Xb] = ode45(@(t,xx) -f_vec(xx), [0, t_int], X0, optsEv);
+            [tb, Xb] = ode45(@(t,xx) f_vec(xx), [0, -t_int], X0, optsEv);
 
             % Project residuals along all left eigenvectors at each step
             gF = zeros(numel(tf), 4);
